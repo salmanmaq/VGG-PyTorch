@@ -29,10 +29,10 @@ parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
             help='manual epoch number (useful on restarts)')
 parser.add_argument('-b', '--batch-size', default=128, type=int, metavar='N',
             help='mini-batch size (default: 128)')
-parser.add_argument('-lr', '--learning-rate', default=0.05, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.05, type=float,
             metavar='LR', help='initial learning rate')
-parser.add_argument('--momentum', dafualt=0.9, type=float, metavar='M',
-            help='momentum')
+parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
+            help='momentum (default: 0.9)')
 parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
             metavar='W', help='weight decay (default: 5e-4)')
 parser.add_argument('--print-freq', '-p', default=20, type=int, metavar='N',
@@ -67,14 +67,14 @@ def main():
     # Optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
-            print "=> loading checkpoint '{}')".format(args.resume)
+            print("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
-            args.start_epcoh = checkpoint['epoch']
+            args.start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
             model.load_state(checkpoint['state_dict'])
-            print "=> loaded checkpoint '{}' (epoch {}))".format(args.evaluate, checkpoint['epoch']))
+            print("=> loaded checkpoint '{}' (epoch {})".format(args.evaluate, checkpoint['epoch']))
         else:
-            print "=> no checkpoint found at '{}')".format(args.resume)
+            print("=> no checkpoint found at '{}'".format(args.resume))
 
     cudnn.benchmark = True
 
@@ -106,7 +106,7 @@ def main():
         model.half()
         criterion.half()
 
-    optimizer = torch.optim.SGD(model_parameters(), args.lr,
+    optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
 
@@ -114,7 +114,7 @@ def main():
         validate(val_loader, model, criterion)
         return
 
-    for epcoh in range(args.start_epcoh, args.epcohs):
+    for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch)
 
         # Train for one epoch
@@ -203,8 +203,8 @@ def validate(val_loader, model, criterion):
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
         target = target.cuda(async=True)
-        input_var = torch.autograd.Variable(input).cuda()
-        target_var = torch.autograd.Variable(target)
+        input_var = torch.autograd.Variable(input, volatile=True).cuda()
+        target_var = torch.autograd.Variable(target, volatile=True)
         if args.half:
             input_var = input_var.half()
 
@@ -229,7 +229,7 @@ def validate(val_loader, model, criterion):
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                      i, len(train_loader), batch_time=batch_time,
+                      i, len(val_loader), batch_time=batch_time,
                       loss=losses, top1=top1))
 
     print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
